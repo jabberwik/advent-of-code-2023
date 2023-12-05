@@ -1,4 +1,6 @@
-﻿using var httpClient = new HttpClient();
+﻿using MoreLinq;
+
+using var httpClient = new HttpClient();
 httpClient.DefaultRequestHeaders.Add("Cookie", Environment.GetEnvironmentVariable("AOC_SESSION"));
 var inputStream = await httpClient.GetStringAsync("https://adventofcode.com/2023/day/5/input");
 var lines = inputStream.Split('\n');
@@ -9,6 +11,7 @@ iter.MoveNext();
 var initialSeeds = iter.Current.Split(':')[1]
     .Split(' ', StringSplitOptions.RemoveEmptyEntries)
     .Select(long.Parse)
+    .Batch(2)
     .ToArray();
 
 // blank
@@ -23,10 +26,18 @@ var tempToHumidMap = ReadMap(iter).ToArray();
 var humidToLocMap = ReadMap(iter).ToArray();
 
 var minLoc = initialSeeds
+    .SelectMany(x => LongRange(x[0], x[1]))
     .Select(Translate)
     .Min();
 
 Console.WriteLine(minLoc);
+
+IEnumerable<long> LongRange(long start, long count) {
+    var end = start + count;
+    for (var x = start; x < end; x++) {
+        yield return x;
+    }
+}
 
 IEnumerable<(long a, long b, long range)> ReadMap(IEnumerator<string> lines)
 {
@@ -39,8 +50,7 @@ IEnumerable<(long a, long b, long range)> ReadMap(IEnumerator<string> lines)
         var data = line.Split(' ').Select(long.Parse).ToArray();
         yield return (data[0], data[1], data[2]);
 
-        lines.MoveNext();
-    } while (!string.IsNullOrWhiteSpace(lines.Current));
+    } while (lines.MoveNext() && !string.IsNullOrWhiteSpace(lines.Current));
 }
 
 long Translate(long seed) {
